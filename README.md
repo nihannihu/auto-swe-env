@@ -1,3 +1,13 @@
+---
+title: Auto-SWE OpenEnv
+emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🚀 Auto-SWE: The Definitive Benchmark for Autonomous Software Engineers
 
 > *A mathematically sound, deterministic OpenEnv environment where AI agents must find, understand, and fix bugs in complex multi-file Python codebases.*
