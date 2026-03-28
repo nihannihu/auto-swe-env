@@ -1,0 +1,9 @@
+# Core dependencies for the Auto-SWE OpenEnv environment
+# Pinned for Docker reproducibility
+
+fastapi>=0.115.0
+pydantic>=2.0.0
+uvicorn>=0.24.0
+requests>=2.31.0
+pytest>=8.0.0
+openenv-core>=0.2.2
