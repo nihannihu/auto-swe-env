@@ -9,7 +9,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     LANG=C.UTF-8
 
-WORKDIR /app
+# Create a non-root user matching the Hugging Face standard ID 1000
+RUN useradd -m -u 1000 user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
+
+WORKDIR $HOME/app
 
 # Install system dependencies
 RUN apt-get update && \
@@ -17,17 +22,24 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy dependency spec first for layer caching
-COPY requirements.txt /app/requirements.txt
+COPY requirements.txt ./
 
-# Install Python dependencies
+# Install Python dependencies natively
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy project source
-COPY . /app/
+# Copy project source into the workspace
+COPY . .
+
+# IMPORTANT: Grant complete permission to the User 1000 so the agent
+# has rights to write physical Python bug files and run Pytest dynamically.
+RUN chown -R 1000:1000 $HOME/app
+
+# Switch to the non-root worker user
+USER user
 
 # Set PYTHONPATH so our modules can be imported natively
-ENV PYTHONPATH="/app:$PYTHONPATH"
+ENV PYTHONPATH="$HOME/app:$PYTHONPATH"
 
 # Expose HF Spaces port
 EXPOSE 7860
