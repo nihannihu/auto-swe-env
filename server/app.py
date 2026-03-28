@@ -72,10 +72,14 @@ class ResetRequest(BaseModel):
     seed: Optional[int] = None
     episode_id: Optional[str] = None
 
+    model_config = {"extra": "allow"}
+
 
 class StepRequest(BaseModel):
     session_id: str
     action: Dict[str, Any]
+
+    model_config = {"extra": "allow"}
 
 
 class StateResponse(BaseModel):
@@ -109,8 +113,9 @@ async def health() -> HealthResponse:
 
 
 @app.post("/reset", response_model=ResetResponse)
-async def reset(req: ResetRequest) -> ResetResponse:
+async def reset(req: Optional[ResetRequest] = None) -> ResetResponse:
     """Start a new episode.  Optionally specify a task_id."""
+    req = req or ResetRequest()
     sid, env = _get_or_create_env(req.session_id)
     try:
         obs = env.reset(
