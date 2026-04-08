@@ -66,7 +66,7 @@ try:
                 )
                 return response.choices[0].message.content or ""
             except Exception as exc:
-                print(f"    ⚠️  LLM call attempt {attempt}/{MAX_RETRIES} failed: {exc}")
+                print(f"    [WARN] LLM call attempt {attempt}/{MAX_RETRIES} failed: {exc}")
                 if attempt < MAX_RETRIES:
                     print(f"    Retrying in {RETRY_DELAY}s...")
                     time.sleep(RETRY_DELAY)
@@ -121,7 +121,7 @@ try:
                 data = resp.json()
                 return data["session_id"], data["observation"]
             except requests.exceptions.RequestException as exc:
-                print(f"    ⚠️  /reset attempt {attempt}/{MAX_RETRIES} failed: {exc}")
+                print(f"    [WARN] /reset attempt {attempt}/{MAX_RETRIES} failed: {exc}")
                 if attempt < MAX_RETRIES:
                     print(f"    Retrying in {RETRY_DELAY}s (waiting for container cold start)...")
                     time.sleep(RETRY_DELAY)
@@ -140,7 +140,7 @@ try:
                 resp.raise_for_status()
                 return resp.json()["observation"]
             except requests.exceptions.RequestException as exc:
-                print(f"    ⚠️  /step attempt {attempt}/{MAX_RETRIES} failed: {exc}")
+                print(f"    [WARN] /step attempt {attempt}/{MAX_RETRIES} failed: {exc}")
                 if attempt < MAX_RETRIES:
                     print(f"    Retrying in {RETRY_DELAY}s...")
                     time.sleep(RETRY_DELAY)
@@ -349,6 +349,7 @@ try:
                 metrics = run_task(tid)
             except Exception as exc:
                 print(f"  Task {tid} crashed: {exc}")
+                force_print(f"[END] task={tid} score=0.0 steps=0")
                 metrics = {"score": 0.0, "steps": 0, "syntax_errors": 0, "status": "crashed"}
             results[tid] = metrics
 
