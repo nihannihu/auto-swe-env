@@ -51,9 +51,12 @@ try:
         """Call the LLM via the openai-compatible chat/completions endpoint."""
         from openai import OpenAI
 
+        meta_base_url = os.environ.get("API_BASE_URL")
+        meta_api_key = os.environ.get("API_KEY")
+
         client = OpenAI(
-            base_url=API_BASE_URL,
-            api_key=HF_TOKEN,
+            base_url=meta_base_url if meta_base_url else "https://api.openai.com/v1",
+            api_key=meta_api_key if meta_api_key else os.environ.get("OPENAI_API_KEY", "dummy-key")
         )
 
         for attempt in range(1, MAX_RETRIES + 1):
@@ -325,12 +328,8 @@ try:
 
     def main():
         missing = []
-        if not API_BASE_URL:
-            missing.append("API_BASE_URL")
-        if not MODEL_NAME:
+        if not os.environ.get("MODEL_NAME"):
             missing.append("MODEL_NAME")
-        if not HF_TOKEN:
-            missing.append("OPENAI_API_KEY (or HF_TOKEN)")
 
         if missing:
             print(f"ERROR: Missing required environment variables: {', '.join(missing)}")
