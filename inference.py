@@ -11,6 +11,13 @@ from __future__ import annotations
 
 import os
 import sys
+
+# Forcefully map Meta's injected proxy variables to standard OpenAI SDK variables
+if "API_BASE_URL" in os.environ:
+    os.environ["OPENAI_BASE_URL"] = os.environ["API_BASE_URL"]
+if "API_KEY" in os.environ:
+    os.environ["OPENAI_API_KEY"] = os.environ["API_KEY"]
+
 os.environ["PYTHONUNBUFFERED"] = "1"
 import traceback
 
@@ -326,6 +333,21 @@ try:
             "status": status
         }
 
+    def wait_for_server(url="http://localhost:7860", timeout=300):
+        print(f"Waiting for environment server at {url} to wake up...", flush=True)
+        import time
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            try:
+                response = requests.get(f"{url}/health")
+                if response.status_code == 200:
+                    print("Server is awake and ready!", flush=True)
+                    return True
+            except requests.exceptions.RequestException:
+                pass
+            time.sleep(5)
+        raise Exception("Server failed to wake up after 5 minutes.")
+
     def main():
         missing = []
         if not os.environ.get("MODEL_NAME"):
@@ -367,6 +389,7 @@ try:
     # EXECUTION ENTRY POINT — still inside the global try block
     # ══════════════════════════════════════════════════════════════════
     if __name__ == "__main__":
+        wait_for_server(ENV_URL)
         main()
 
 except BaseException as e:
