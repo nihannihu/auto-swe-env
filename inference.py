@@ -41,6 +41,42 @@ def force_print(msg):
 
 try:
     # ── ALL other imports inside the shield ────────────────────────────
+    import requests
+
+    def raw_proxy_ping():
+        import os
+        api_base = os.environ.get("API_BASE_URL", "").rstrip('/')
+        api_key = os.environ.get("API_KEY", "")
+        
+        if not api_base or not api_key:
+            print("DEBUG: API_BASE_URL or API_KEY not injected by Meta. Skipping raw ping.", flush=True)
+            return
+            
+        # Force the /v1 suffix required by OpenAI-compatible REST endpoints
+        if not api_base.endswith('/v1'):
+            api_base += '/v1'
+        url = f"{api_base}/chat/completions"
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "gpt-3.5-turbo", # LiteLLM automatically maps this fallback
+            "messages": [{"role": "user", "content": "ping"}],
+            "max_tokens": 1
+        }
+        
+        print(f"DEBUG: FIRING RAW HTTP PING TO {url}...", flush=True)
+        try:
+            # 10 second timeout so we don't hang the whole script
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            print(f"DEBUG: RAW PING SUCCESS. Status: {response.status_code}. Response: {response.text[:100]}", flush=True)
+        except Exception as e:
+            print(f"DEBUG: RAW PING FAILED: {e}", flush=True)
+
+    # EXECUTE IMMEDIATELY ON BOOT
+    raw_proxy_ping()
 
     import json
     import os
