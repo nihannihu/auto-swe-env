@@ -12,6 +12,13 @@ from __future__ import annotations
 import sys
 import traceback
 
+def force_print(msg):
+    try:
+        sys.__stdout__.write(str(msg) + "\n")
+        sys.__stdout__.flush()
+    except Exception:
+        print(msg, flush=True) # Fallback
+
 try:
     # ── ALL other imports inside the shield ────────────────────────────
 
@@ -188,7 +195,7 @@ try:
         print(f"{'='*60}")
 
         session_id, obs = env_reset(task_id)
-        print(f"[START] task={task_id}", flush=True)
+        force_print(f"[START] task={task_id}")
         print(f"  Session: {session_id}")
         print(f"  Files  : {obs['current_directory']}")
         print(f"  Task   : {obs['task_description'][:80]}...")
@@ -223,7 +230,7 @@ try:
                 try:
                     obs = env_step(session_id, {"command": "submit_task"})
                     grade = obs.get("grade", 0.0)
-                    print(f"[END] task={task_id} score={grade} steps={obs.get('step_count', turn)}", flush=True)
+                    force_print(f"[END] task={task_id} score={grade} steps={obs.get('step_count', turn)}")
                     return {
                         "score": grade,
                         "steps": obs.get("step_count", turn),
@@ -231,7 +238,7 @@ try:
                         "status": "llm_failure_graceful_exit"
                     }
                 except Exception:
-                    print(f"[END] task={task_id} score=0.0 steps={turn}", flush=True)
+                    force_print(f"[END] task={task_id} score=0.0 steps={turn}")
                     return {"score": 0.0, "steps": turn, "syntax_errors": syntax_errors, "status": "crashed"}
 
             # Parse action — with self-correction loop and ultimate fallback
@@ -264,13 +271,13 @@ try:
                 obs = env_step(session_id, action)
             except Exception as exc:
                 print(f"  [Turn {turn}] /step call failed after all retries: {exc}")
-                print(f"[END] task={task_id} score=0.0 steps={turn}", flush=True)
+                force_print(f"[END] task={task_id} score=0.0 steps={turn}")
                 return {"score": 0.0, "steps": turn, "syntax_errors": syntax_errors, "status": "network_failure"}
 
             if obs.get("reward", 0.0) == -0.1 and cmd == "write_file":
                 syntax_errors += 1
 
-            print(f"[STEP] step={obs.get('step_count', turn)} reward={obs.get('reward', 0.0)}", flush=True)
+            force_print(f"[STEP] step={obs.get('step_count', turn)} reward={obs.get('reward', 0.0)}")
 
             # Build user message for LLM from observation
             parts = []
@@ -297,7 +304,7 @@ try:
                 grade = obs.get("grade", 0.0)
                 status = "submitted"
                 print(f"  Episode ended — grade: {grade}")
-                print(f"[END] task={task_id} score={grade} steps={obs.get('step_count', turn)}", flush=True)
+                force_print(f"[END] task={task_id} score={grade} steps={obs.get('step_count', turn)}")
                 return {
                     "score": grade,
                     "steps": obs.get("step_count", turn),
@@ -306,7 +313,7 @@ try:
                 }
 
         print("  Max turns reached without submit_task")
-        print(f"[END] task={task_id} score=0.0 steps={max_turns}", flush=True)
+        force_print(f"[END] task={task_id} score=0.0 steps={max_turns}")
         return {
             "score": 0.0,
             "steps": max_turns,
@@ -367,7 +374,7 @@ except BaseException as e:
     #   MemoryError, anything the Python runtime can throw.
     # Forces exit code 0 so Meta's evaluator bot NEVER sees a crash.
     # ══════════════════════════════════════════════════════════════════
-    print(f"\nFATAL ERROR CAUGHT BY GOD-MODE SHIELD: {e}")
+    force_print(f"FATAL ERROR CAUGHT: {e}")
     traceback.print_exc()
-    print(f"[END] task=unknown score=0.0 steps=0", flush=True)
+    force_print("[END] task=unknown score=0.0 steps=0")
     sys.exit(0)
