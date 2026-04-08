@@ -188,6 +188,7 @@ try:
         print(f"{'='*60}")
 
         session_id, obs = env_reset(task_id)
+        print(f"[START] task={task_id}", flush=True)
         print(f"  Session: {session_id}")
         print(f"  Files  : {obs['current_directory']}")
         print(f"  Task   : {obs['task_description'][:80]}...")
@@ -222,6 +223,7 @@ try:
                 try:
                     obs = env_step(session_id, {"command": "submit_task"})
                     grade = obs.get("grade", 0.0)
+                    print(f"[END] task={task_id} score={grade} steps={obs.get('step_count', turn)}", flush=True)
                     return {
                         "score": grade,
                         "steps": obs.get("step_count", turn),
@@ -229,6 +231,7 @@ try:
                         "status": "llm_failure_graceful_exit"
                     }
                 except Exception:
+                    print(f"[END] task={task_id} score=0.0 steps={turn}", flush=True)
                     return {"score": 0.0, "steps": turn, "syntax_errors": syntax_errors, "status": "crashed"}
 
             # Parse action — with self-correction loop and ultimate fallback
@@ -261,10 +264,13 @@ try:
                 obs = env_step(session_id, action)
             except Exception as exc:
                 print(f"  [Turn {turn}] /step call failed after all retries: {exc}")
+                print(f"[END] task={task_id} score=0.0 steps={turn}", flush=True)
                 return {"score": 0.0, "steps": turn, "syntax_errors": syntax_errors, "status": "network_failure"}
 
             if obs.get("reward", 0.0) == -0.1 and cmd == "write_file":
                 syntax_errors += 1
+
+            print(f"[STEP] step={obs.get('step_count', turn)} reward={obs.get('reward', 0.0)}", flush=True)
 
             # Build user message for LLM from observation
             parts = []
@@ -291,6 +297,7 @@ try:
                 grade = obs.get("grade", 0.0)
                 status = "submitted"
                 print(f"  Episode ended — grade: {grade}")
+                print(f"[END] task={task_id} score={grade} steps={obs.get('step_count', turn)}", flush=True)
                 return {
                     "score": grade,
                     "steps": obs.get("step_count", turn),
@@ -299,6 +306,7 @@ try:
                 }
 
         print("  Max turns reached without submit_task")
+        print(f"[END] task={task_id} score=0.0 steps={max_turns}", flush=True)
         return {
             "score": 0.0,
             "steps": max_turns,
@@ -361,4 +369,5 @@ except BaseException as e:
     # ══════════════════════════════════════════════════════════════════
     print(f"\nFATAL ERROR CAUGHT BY GOD-MODE SHIELD: {e}")
     traceback.print_exc()
+    print(f"[END] task=unknown score=0.0 steps=0", flush=True)
     sys.exit(0)
